@@ -1,0 +1,8 @@
+[package]
+name = "rust_library"
+version = "0.1.0"
+edition = "2021"
+authors = ["jean"]
+description = "Una librería de soporte con estructuras de datos dinámicas y helpers"
+
+[dependencies]
