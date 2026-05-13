@@ -41,8 +41,8 @@ fn main() {
 
     // Árbol
     let mut t = BinaryTree::new();
-    for n in [50, 30, 70, 20, 40] { t.insert(n); }
-    println!("\nPrueba de Arboles: Insercion en Impresion en distinto orden");  
+    for n in [50, 30, 70, 20, 40, 35] { t.insert(n); }
+    println!("\nPrueba de Arboles: Insercion, Eliminación e Impresion en distinto orden");  
     print!("Árbol (In-Order): ");
     t.print_in_order();
     println!();
@@ -51,6 +51,10 @@ fn main() {
     println!();
     print!("Árbol (Post-Order): ");
     t.print_post_order();
+    println!();
+    println!(); t.delete(30);
+    print!("Árbol con nodo eliminado: ");
+    t.print_in_order();
     println!();
     println!();
  
