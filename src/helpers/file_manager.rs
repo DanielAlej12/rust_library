@@ -22,8 +22,7 @@ impl fmt::Display for FileActionError {
 pub struct FileManager;
 
 impl FileManager {
-    // File Reader
-    pub fn read_file(path: &str) -> Result<String, Box<FileActionError>> {
+    pub fn read_file(path: &str, chunk_size: usize) -> Result<Vec<String>, Box<FileActionError>> {
         let mut file = File::open(path).map_err(|e| {
             Box::new(match e.kind() {
                 std::io::ErrorKind::NotFound => FileActionError::NotFound(path.to_string()),
@@ -32,16 +31,29 @@ impl FileManager {
             })
         })?;
 
-        let mut content = String::new();
-        file.read_to_string(&mut content).map_err(|e| {
-            Box::new(FileActionError::Unknown(e.to_string()))
-        })?;
+        let mut chunks = Vec::new();
+        // Creamos un buffer intermedio con el tamaño límite especificado
+        let mut buffer = vec![0; chunk_size];
 
-        Ok(content)
+        loop {
+            let bytes_read = file.read(&mut buffer).map_err(|e| {
+                Box::new(FileActionError::Unknown(e.to_string()))
+            })?;
+
+            // Si se leyeron 0 bytes, significa que llegamos al final del archivo
+            if bytes_read == 0 {
+                break;
+            }
+
+            // Se convierten los bytes leídos válidos a un String
+            let chunk_str = String::from_utf8_lossy(&buffer[..bytes_read]).into_owned();
+            chunks.push(chunk_str);
+        }
+
+        Ok(chunks)
     }
 
-    // File Writer
-    pub fn write_file(path: &str, data: &str) -> Result<(), Box<FileActionError>> {
+    pub fn write_file(path: &str, data: &str, chunk_size: usize) -> Result<(), Box<FileActionError>> {
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -49,8 +61,22 @@ impl FileManager {
             .open(path)
             .map_err(|_| Box::new(FileActionError::PermissionDenied))?;
 
-        file.write_all(data.as_bytes())
-            .map_err(|e| Box::new(FileActionError::Unknown(e.to_string())))?;
+        let bytes = data.as_bytes();
+        let mut offset = 0;
+
+        // Iteramos sobre el string en porciones de tamaño 'chunk_size'
+        while offset < bytes.len() {
+            let end = std::cmp::min(offset + chunk_size, bytes.len());
+            let chunk = &bytes[offset..end];
+
+            file.write_all(chunk).map_err(|e| {
+                Box::new(FileActionError::Unknown(e.to_string()))
+            })?;
+
+            file.flush().map_err(|e| Box::new(FileActionError::Unknown(e.to_string())))?;
+
+            offset = end;
+        }
         
         Ok(())
     }
